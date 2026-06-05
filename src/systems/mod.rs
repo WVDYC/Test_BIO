@@ -1,0 +1,8 @@
+pub mod spawn;
+pub mod movement;
+pub mod metabolism;
+pub mod chemotaxis;
+pub mod reproduction;
+pub mod environment;
+pub mod eating;
+pub mod render_effects;
