@@ -24,6 +24,24 @@ impl Default for Environment {
     }
 }
 
+/// UI configuration for spawning new bacteria agents.
+#[derive(Resource, Debug, Clone)]
+pub struct SpawnSettings {
+    pub species: crate::components::Species,
+    pub count: u32,
+    pub click_spawn: bool,
+}
+
+impl Default for SpawnSettings {
+    fn default() -> Self {
+        Self {
+            species: crate::components::Species::EColi,
+            count: 100,
+            click_spawn: true,
+        }
+    }
+}
+
 /// Shared biological asset handles to avoid asset recreation in runtime systems.
 #[derive(Resource, Clone, Debug)]
 pub struct SimulationAssets {

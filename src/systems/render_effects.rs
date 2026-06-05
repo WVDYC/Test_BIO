@@ -6,7 +6,7 @@ use crate::math::hill_activation;
 
 /// System that draws background grids, borders, velocity trails, and Quorum Sensing pulsing glowing auras.
 pub fn draw_render_effects(
-    mut gizmos: Gizmos,
+    mut gizmos: Gizmos<'_, '_>,
     env: Res<Environment>,
     grid: Res<SpatialGrid>,
     bacteria_query: Query<(&Position, &Velocity, &Dna, &Metabolism)>,

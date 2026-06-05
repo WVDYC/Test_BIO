@@ -1,13 +1,16 @@
 use bevy::prelude::*;
 use crate::components::{Position, Velocity};
 
+use crate::resources::Environment;
+
 /// System to update the physical positions based on velocities and clamp/bounce off boundaries.
 /// Also synchronizes the custom Position component to Bevy's built-in Transform component.
 pub fn update_positions(
     time: Res<Time>,
+    env: Res<Environment>,
     mut query: Query<(&mut Position, &mut Velocity, &mut Transform)>,
 ) {
-    let dt = time.delta_secs();
+    let dt = time.delta_secs() * env.time_scale;
     let box_limit = 300.0; // Half of our 600x600 box boundary
 
     query.par_iter_mut().for_each(|(mut pos, mut vel, mut transform)| {

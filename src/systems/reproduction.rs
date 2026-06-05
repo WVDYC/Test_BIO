@@ -9,7 +9,7 @@ pub fn update_reproduction(
     mut commands: Commands,
     time: Res<Time>,
     env: Res<Environment>,
-    mut query: Query<(Entity, &Position, &mut Metabolism, &Dna, &Mesh2d, &MeshMaterial2d<ColorMaterial>, &Velocity, &Motor)>,
+    mut query: Query<(Entity, &Position, &mut Metabolism, &Dna, &Velocity, &Motor)>,
 ) {
     let dt = time.delta_secs() * env.time_scale;
     if dt <= 0.0 {
@@ -22,7 +22,7 @@ pub fn update_reproduction(
     let delta = 30.0; // scale parameter
     let p = 1.8;      // shape parameter
 
-    for (entity, pos, mut met, dna, mesh, material, vel, motor) in query.iter_mut() {
+    for (entity, pos, mut met, dna, vel, motor) in query.iter_mut() {
         // --- 1. DEATH SYSTEM ---
         let mut died = false;
 
@@ -61,7 +61,7 @@ pub fn update_reproduction(
             child_dna.repro_threshold = (dna.repro_threshold + rng.gen_range(-5.0..5.0)).clamp(30.0, 300.0);
             child_dna.base_metabolic_cost = (dna.base_metabolic_cost + rng.gen_range(-0.01..0.01)).clamp(0.01, 1.0);
 
-            // Spawn the child entity inheriting parent visual mesh/material explicitly
+            // Spawn the child entity
             commands.spawn((
                 Position(child_pos),
                 Velocity(vel.0.normalize_or_zero() * child_dna.base_speed),
@@ -77,8 +77,6 @@ pub fn update_reproduction(
                     run_timer: rng.gen_range(0.5..2.0),
                     last_attractant_level: 0.0,
                 },
-                Mesh2d(mesh.0.clone()),
-                MeshMaterial2d(material.0.clone()),
                 Transform::from_translation(child_pos.extend(0.0)),
             ));
         }
