@@ -13,6 +13,7 @@ pub enum Species {
 #[derive(Component, Debug, Clone)]
 pub struct Dna {
     pub species: Species,
+    pub generation: u32,
 
     // --- TEMPERATURE (Ratkowsky model parameters) ---
     pub temp_min: f32,
@@ -45,6 +46,7 @@ impl Dna {
     pub fn e_coli() -> Self {
         Self {
             species: Species::EColi,
+            generation: 0,
             temp_min: 7.0,   // Cannot grow under ~7°C
             temp_max: 46.0,
             temp_opt: 37.0,
@@ -68,6 +70,7 @@ impl Dna {
     pub fn listeria() -> Self {
         Self {
             species: Species::Listeria,
+            generation: 0,
             temp_min: 0.0,   // Can grow at refrigeration temperatures
             temp_max: 45.0,
             temp_opt: 30.0,

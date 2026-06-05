@@ -33,59 +33,7 @@ pub fn setup_simulation(
         listeria_material: Handle::default(), // unused placeholder
     });
 
-    // Spawn 5,000 E. coli (Cyan - data-only ECS entities)
-    for _ in 0..5000 {
-        let pos = Vec2::new(
-            rng.gen_range(-half_box..half_box),
-            rng.gen_range(-half_box..half_box),
-        );
-        let dna = Dna::e_coli();
-        let vel_dir = Vec2::new(
-            rng.gen_range(-1.0..1.0),
-            rng.gen_range(-1.0..1.0),
-        ).normalize_or_zero();
-
-        commands.spawn((
-            Position(pos),
-            Velocity(vel_dir * dna.base_speed),
-            dna,
-            Metabolism::default(),
-            Motor {
-                current_direction: vel_dir,
-                run_timer: rng.gen_range(0.5..2.0),
-                last_attractant_level: 0.0,
-            },
-            // Note: No mesh/material components spawned here!
-            // The InstancedRenderer draws them all in a single GPU call.
-            Transform::from_translation(pos.extend(0.0)),
-        ));
-    }
-
-    // Spawn 5,000 Listeria (Green - data-only ECS entities)
-    for _ in 0..5000 {
-        let pos = Vec2::new(
-            rng.gen_range(-half_box..half_box),
-            rng.gen_range(-half_box..half_box),
-        );
-        let dna = Dna::listeria();
-        let vel_dir = Vec2::new(
-            rng.gen_range(-1.0..1.0),
-            rng.gen_range(-1.0..1.0),
-        ).normalize_or_zero();
-
-        commands.spawn((
-            Position(pos),
-            Velocity(vel_dir * dna.base_speed),
-            dna,
-            Metabolism::default(),
-            Motor {
-                current_direction: vel_dir,
-                run_timer: rng.gen_range(0.5..2.0),
-                last_attractant_level: 0.0,
-            },
-            Transform::from_translation(pos.extend(0.0)),
-        ));
-    }
+    // We start with zero bacteria in the sandbox, allowing interactive click-to-spawn.
 
     // Spawn 1,000 Food Particles (Yellow circular meshes)
     for _ in 0..1000 {

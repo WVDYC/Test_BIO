@@ -9,7 +9,7 @@ pub fn update_reproduction(
     mut commands: Commands,
     time: Res<Time>,
     env: Res<Environment>,
-    mut query: Query<(Entity, &Position, &mut Metabolism, &Dna, &Velocity, &Motor)>,
+    mut query: Query<(Entity, &Position, &mut Metabolism, &mut Dna, &Velocity, &Motor)>,
 ) {
     let dt = time.delta_secs() * env.time_scale;
     if dt <= 0.0 {
@@ -22,7 +22,7 @@ pub fn update_reproduction(
     let delta = 30.0; // scale parameter
     let p = 1.8;      // shape parameter
 
-    for (entity, pos, mut met, dna, vel, motor) in query.iter_mut() {
+    for (entity, pos, mut met, mut dna, vel, motor) in query.iter_mut() {
         // --- 1. DEATH SYSTEM ---
         let mut died = false;
 
@@ -47,13 +47,19 @@ pub fn update_reproduction(
             // Mitosis consumes half of parent's energy
             met.energy /= 2.0;
 
+            // Increment parent's generation
+            let parent_generation = dna.generation;
+            let next_generation = parent_generation + 1;
+            dna.generation = next_generation;
+
             // Child spawn position offset
             let offset_angle = rng.gen_range(0.0..std::f32::consts::TAU);
             let offset = Vec2::new(offset_angle.cos(), offset_angle.sin()) * 5.0;
             let child_pos = pos.0 + offset;
 
-            // Mutate child DNA traits (genomic drift)
+            // Mutate child DNA traits (genomic drift) and inherit incremented generation
             let mut child_dna = dna.clone();
+            child_dna.generation = next_generation;
             
             child_dna.base_speed = (dna.base_speed + rng.gen_range(-3.0..3.0)).clamp(5.0, 120.0);
             child_dna.sensory_radius = (dna.sensory_radius + rng.gen_range(-4.0..4.0)).clamp(10.0, 150.0);

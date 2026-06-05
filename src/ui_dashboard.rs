@@ -104,14 +104,14 @@ pub fn update_scientific_ui(
             // pH Slider
             ui.horizontal(|ui| {
                 ui.label("pH:    ");
-                ui.add(egui::Slider::new(&mut env.ph, 2.0..=10.0)
+                ui.add(egui::Slider::new(&mut env.ph, 2.0..=14.0)
                     .show_value(true));
             });
 
             // Speed (Time Scale) Slider
             ui.horizontal(|ui| {
                 ui.label("Speed: ");
-                ui.add(egui::Slider::new(&mut env.time_scale, 0.0..=2.0)
+                ui.add(egui::Slider::new(&mut env.time_scale, 0.0..=100.0)
                     .suffix("x")
                     .show_value(true));
             });
@@ -194,8 +194,10 @@ pub fn update_scientific_ui(
             let mut listeria_count = 0;
             let mut ecoli_stress = 0.0;
             let mut listeria_stress = 0.0;
+            let mut max_generation = 0;
 
             for (dna, met) in bacteria_query.iter() {
+                max_generation = max_generation.max(dna.generation);
                 match dna.species {
                     Species::EColi => {
                         ecoli_count += 1;
@@ -250,6 +252,7 @@ pub fn update_scientific_ui(
 
             ui.add_space(5.0);
             ui.label(format!("Nutrients Level: {}", food_count));
+            ui.label(format!("Max Generation Reached: {}", max_generation));
 
             ui.add_space(15.0);
             ui.separator();
@@ -336,7 +339,7 @@ pub fn update_scientific_ui(
 }
 
 /// System to spawn bacteria when clicking on the viewport.
-pub fn handle_mouse_spawning(
+pub fn handle_mouse_clicks(
     mut commands: Commands,
     window_query: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform)>,

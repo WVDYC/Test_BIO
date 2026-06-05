@@ -3,7 +3,7 @@ pub mod spatial_grid;
 pub mod resources;
 pub mod math;
 pub mod systems;
-pub mod ui;
+pub mod ui_dashboard;
 pub mod bacteria_material;
 pub mod render_setup;
 
@@ -19,7 +19,7 @@ use systems::reproduction::update_reproduction;
 use systems::eating::update_eating;
 use systems::environment::{handle_inputs, replenish_food};
 use systems::render_effects::draw_render_effects;
-use ui::{update_history, update_scientific_ui, SimulationHistory, handle_mouse_spawning};
+use ui_dashboard::{update_history, update_scientific_ui, SimulationHistory, handle_mouse_clicks};
 use render_setup::InstancedRenderPlugin;
 
 fn main() {
@@ -64,7 +64,7 @@ fn main() {
             draw_render_effects,
             update_history,
             update_scientific_ui,
-            handle_mouse_spawning,
+            handle_mouse_clicks,
         ))
         .run();
 }
