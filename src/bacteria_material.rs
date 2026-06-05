@@ -1,4 +1,4 @@
-#[allow(dead_code, unused_imports)]
+#![allow(dead_code, unused_imports)]
 
 use bevy::{
     prelude::*,
@@ -27,6 +27,8 @@ pub struct BacteriaInstance {
     pub stress: f32,
     pub energy: f32,
     pub age: f32,
+    pub division_progress: f32,
+    pub padding: f32,
 }
 
 /// GPU Uniforms structure aligned to 16-byte boundaries (total 32 bytes).
@@ -133,6 +135,8 @@ pub fn update_bacteria_shader_buffers(
             stress: (met.accumulated_stress.min(30.0) / 30.0),
             energy: met.energy,
             age: met.age,
+            division_progress: met.division_progress,
+            padding: 0.0,
         });
     }
 
@@ -147,6 +151,8 @@ pub fn update_bacteria_shader_buffers(
             stress: 0.0,
             energy: 0.0,
             age: 0.0,
+            division_progress: 0.0,
+            padding: 0.0,
         });
     }
 

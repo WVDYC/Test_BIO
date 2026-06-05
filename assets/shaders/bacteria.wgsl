@@ -10,6 +10,7 @@ struct VertexOutput {
     @location(2) stress: f32,
     @location(3) energy: f32,
     @location(4) age: f32,
+    @location(5) division_progress: f32,
 };
 
 struct Uniforms {
@@ -30,6 +31,8 @@ struct BacteriaInstance {
     stress: f32,
     energy: f32,
     age: f32,
+    division_progress: f32,
+    padding: f32,
 };
 
 struct View {
@@ -59,6 +62,7 @@ fn vertex(input: VertexInput) -> VertexOutput {
     out.stress = instance.stress;
     out.energy = instance.energy;
     out.age = instance.age;
+    out.division_progress = instance.division_progress;
     out.local_pos = input.position.xy;
 
     // 2. Set scale based on species and metabolic energy
@@ -68,7 +72,9 @@ fn vertex(input: VertexInput) -> VertexOutput {
     if (instance.species == 1u) {
         base_scale = vec2<f32>(11.0, 8.5); // Listeria size (shorter, thicker)
     }
-    let scale = base_scale * energy_scale;
+    var scale = base_scale * energy_scale;
+    // Stretch the X-dimension during mitosis to fit the two separating entities
+    scale.x = scale.x * (1.0 + instance.division_progress);
 
     // 3. Compute rotation aligning with velocity vector
     let vel_len = length(instance.velocity);
@@ -102,6 +108,14 @@ fn fluid_noise(p: vec2<f32>, time: f32) -> f32 {
     return val * 0.05;
 }
 
+fn smin(a: f32, b: f32, k: f32) -> f32 {
+    if (k <= 0.0) {
+        return min(a, b);
+    }
+    let h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0);
+    return mix(b, a, h) - k * h * (1.0 - h);
+}
+
 @fragment
 fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
     let time = uniforms.time;
@@ -116,10 +130,26 @@ fn fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 
     // B. Organic Jitter: apply noise distortion to coordinate space
     let noise = fluid_noise(input.local_pos, time);
-    let p = input.local_pos + vec2<f32>(noise, noise * 0.8);
+    let div_scale = 1.0 + input.division_progress;
+    let p = input.local_pos * vec2<f32>(div_scale, 1.0) + vec2<f32>(noise, noise * 0.8);
 
-    // C. Bacillus Capsule Signed Distance Field (SDF)
-    var dist = length(p - vec2<f32>(clamp(p.x, -half_len, half_len), 0.0)) - radius;
+    // C. Mitosis Morphing (Smooth Minimum Metaball capsule separation)
+    // The separation between the two daughter cells increases with division progress
+    let separation = input.division_progress * (half_len + radius * 0.5);
+    
+    // Blending factor decreases to 0.0 as division progress reaches 1.0 (complete separation)
+    let k = 0.15 * (1.0 - input.division_progress);
+
+    // Daughter cell 1 (left)
+    let cap1_x = clamp(p.x, -half_len - separation, -separation);
+    let d1 = length(p - vec2<f32>(cap1_x, 0.0)) - radius;
+
+    // Daughter cell 2 (right)
+    let cap2_x = clamp(p.x, separation, half_len + separation);
+    let d2 = length(p - vec2<f32>(cap2_x, 0.0)) - radius;
+
+    // Smooth minimum combines the two shapes to simulate pinching and division
+    var dist = smin(d1, d2, k);
 
     // D. Cellular Death: Dissolve the shape when stress is extremely high (> 0.8)
     if (input.stress > 0.8) {

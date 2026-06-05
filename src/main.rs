@@ -6,11 +6,12 @@ pub mod systems;
 pub mod ui_dashboard;
 pub mod bacteria_material;
 pub mod render_setup;
+pub mod background_material;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use spatial_grid::{SpatialGrid, rebuild_spatial_grid};
-use resources::{Environment, SpawnSettings};
+use resources::{Environment, SpawnSettings, FluidGrid, HeatProbe};
 use systems::spawn::setup_simulation;
 use systems::movement::update_positions;
 use systems::metabolism::update_metabolism;
@@ -18,6 +19,7 @@ use systems::chemotaxis::update_chemotaxis;
 use systems::reproduction::update_reproduction;
 use systems::eating::update_eating;
 use systems::environment::{handle_inputs, replenish_food};
+use systems::fluid::update_fluid_grid;
 use systems::render_effects::draw_render_effects;
 use ui_dashboard::{update_history, update_scientific_ui, SimulationHistory, handle_mouse_clicks};
 use render_setup::InstancedRenderPlugin;
@@ -41,6 +43,10 @@ fn main() {
         .insert_resource(Environment::default())
         // Spawning configuration settings
         .insert_resource(SpawnSettings::default())
+        // Diffusing background fluid grid (30x30 cells over 600x600 environment)
+        .insert_resource(FluidGrid::new(30, 30, 20.0, 7.0, 37.0))
+        // Localized heat probe
+        .insert_resource(HeatProbe::default())
         // Telemetry history resource for egui plotter
         .insert_resource(SimulationHistory::new(100))
         // 2D Spatial Grid matching bounds (-300.0 to 300.0, cell size = 15.0)
@@ -59,6 +65,7 @@ fn main() {
             update_chemotaxis,
             update_reproduction,
             replenish_food,
+            update_fluid_grid,
         ))
         .add_systems(Update, (
             draw_render_effects,

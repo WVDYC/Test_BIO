@@ -1,53 +1,38 @@
 use bevy::prelude::*;
-use bevy::utils::HashSet;
 use crate::components::{Position, Dna, Metabolism};
-use crate::spatial_grid::SpatialGrid;
-use crate::systems::spawn::Food;
+use crate::resources::{Environment, FluidGrid};
 
-/// Sequential system that checks for bacteria close enough to food particles and consumes them.
-/// Running this sequentially with a HashSet ensures that food particles are despawned
-/// exactly once, eliminating double-despawn warnings in the console.
+/// System that checks for bacteria overlapping with food concentration in the FluidGrid and consumes it.
 pub fn update_eating(
-    mut commands: Commands,
-    grid: Res<SpatialGrid>,
-    food_query: Query<&Position, With<Food>>,
+    time: Res<Time>,
+    env: Res<Environment>,
+    mut fluid_grid: ResMut<FluidGrid>,
     mut bacteria_query: Query<(&Position, &Dna, &mut Metabolism)>,
 ) {
-    let eat_distance_sq = 9.0; // 3.0 units radius squared
-    let mut eaten_food = HashSet::new();
+    let dt = time.delta_secs() * env.time_scale;
+    if dt <= 0.0 {
+        return;
+    }
 
-    for (b_pos, b_dna, mut b_met) in bacteria_query.iter_mut() {
-        let mut closest_food: Option<(Entity, f32)> = None;
+    for (pos, dna, mut met) in bacteria_query.iter_mut() {
+        let half_width = (fluid_grid.cols as f32 * fluid_grid.cell_size) / 2.0;
+        let half_height = (fluid_grid.rows as f32 * fluid_grid.cell_size) / 2.0;
 
-        // Query spatial grid for nearby food particles
-        grid.query_nearby(b_pos.0, b_dna.sensory_radius, |ent| {
-            // Check if this food particle has already been eaten by another bacterium in this frame
-            if eaten_food.contains(&ent) {
-                return;
-            }
+        let cell_x = ((pos.0.x + half_width) / fluid_grid.cell_size).clamp(0.0, (fluid_grid.cols - 1) as f32) as usize;
+        let cell_y = ((pos.0.y + half_height) / fluid_grid.cell_size).clamp(0.0, (fluid_grid.rows - 1) as f32) as usize;
+        let idx = cell_y * fluid_grid.cols + cell_x;
 
-            if let Ok(f_pos) = food_query.get(ent) {
-                let dist_sq = b_pos.0.distance_squared(f_pos.0);
-                if dist_sq <= eat_distance_sq {
-                    match closest_food {
-                        Some((_, d_sq)) => {
-                            if dist_sq < d_sq {
-                                closest_food = Some((ent, dist_sq));
-                            }
-                        }
-                        None => {
-                            closest_food = Some((ent, dist_sq));
-                        }
-                    }
-                }
-            }
-        });
-
-        // Eat the closest food particle found
-        if let Some((f_entity, _)) = closest_food {
-            eaten_food.insert(f_entity);
-            commands.entity(f_entity).despawn();
-            b_met.energy += 30.0; // Add energy from food consumption
+        let cell_food = fluid_grid.cells[idx].food;
+        if cell_food > 0.0 {
+            // E. coli is faster at consuming nutrients than Listeria
+            let base_eat_rate = match dna.species {
+                crate::components::Species::EColi => 8.0,
+                crate::components::Species::Listeria => 5.0,
+            };
+            let max_eaten = base_eat_rate * dt;
+            let eaten = cell_food.min(max_eaten);
+            fluid_grid.cells[idx].food -= eaten;
+            met.energy += eaten * 15.0;
         }
     }
 }

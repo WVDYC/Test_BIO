@@ -96,6 +96,7 @@ pub struct Metabolism {
     pub health: f32,             // Range: 0.0 (Dead) to 1.0 (Fully healthy)
     pub age: f32,                // Time alive in seconds
     pub accumulated_stress: f32,  // Integrated stress history for Weibull death model
+    pub division_progress: f32,  // Mitosis progress from 0.0 to 1.0
 }
 
 impl Default for Metabolism {
@@ -105,6 +106,7 @@ impl Default for Metabolism {
             health: 1.0,
             age: 0.0,
             accumulated_stress: 0.0,
+            division_progress: 0.0,
         }
     }
 }
@@ -135,4 +137,13 @@ impl Default for Motor {
             last_attractant_level: 0.0,
         }
     }
+}
+
+/// Component for drawing expanding waves upon clicking sandbox droppers.
+#[derive(Component, Debug, Clone)]
+pub struct ClickRipple {
+    pub pos: Vec2,
+    pub radius: f32,
+    pub max_radius: f32,
+    pub color: Color,
 }

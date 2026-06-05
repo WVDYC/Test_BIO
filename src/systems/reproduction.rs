@@ -43,7 +43,10 @@ pub fn update_reproduction(
         }
 
         // --- 2. REPRODUCTION SYSTEM (MITOSIS) ---
-        if met.energy >= dna.repro_threshold {
+        if met.division_progress >= 1.0 {
+            // Reset parent's division progress
+            met.division_progress = 0.0;
+
             // Mitosis consumes half of parent's energy
             met.energy /= 2.0;
 
@@ -77,6 +80,7 @@ pub fn update_reproduction(
                     health: 1.0,
                     age: 0.0,
                     accumulated_stress: 0.0,
+                    division_progress: 0.0,
                 },
                 Motor {
                     current_direction: motor.current_direction,

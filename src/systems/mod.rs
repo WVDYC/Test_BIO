@@ -6,3 +6,4 @@ pub mod reproduction;
 pub mod environment;
 pub mod eating;
 pub mod render_effects;
+pub mod fluid;

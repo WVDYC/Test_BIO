@@ -1,6 +1,13 @@
 use bevy::prelude::*;
 use crate::components::Position;
 
+/// Structure stored inside the spatial grid cells to allow lock-free position queries.
+#[derive(Clone, Copy, Debug)]
+pub struct GridEntry {
+    pub entity: Entity,
+    pub position: Vec2,
+}
+
 /// A highly optimized Spatial Hash Grid mapped to a flat 2D physical space.
 /// Cleared and rebuilt every frame to provide O(1) cell inserts and O(1) local queries.
 #[derive(Resource, Debug)]
@@ -13,9 +20,9 @@ pub struct SpatialGrid {
     pub cols: usize,
     pub rows: usize,
     /// Flat 1D representation of a 2D grid: cells[y * cols + x]
-    /// Using `Vec<Vec<Entity>>` where we reuse inner capacity via `.clear()`
+    /// Using `Vec<Vec<GridEntry>>` where we reuse inner capacity via `.clear()`
     /// prevents heap allocation thrashing on every frame rebuild.
-    pub cells: Vec<Vec<Entity>>,
+    pub cells: Vec<Vec<GridEntry>>,
 }
 
 impl SpatialGrid {
@@ -92,14 +99,14 @@ impl SpatialGrid {
     pub fn insert(&mut self, entity: Entity, pos: Vec2) {
         if let Some((cx, cy)) = self.pos_to_cell(pos) {
             let idx = self.cell_to_index(cx, cy);
-            self.cells[idx].push(entity);
+            self.cells[idx].push(GridEntry { entity, position: pos });
         }
     }
 
     /// Queries all entities within the cells overlapping a spatial search region.
     /// Uses a callback closure (`impl FnMut`) to achieve ZERO heap allocations during lookups.
     #[inline(always)]
-    pub fn query_nearby(&self, pos: Vec2, radius: f32, mut callback: impl FnMut(Entity)) {
+    pub fn query_nearby(&self, pos: Vec2, radius: f32, mut callback: impl FnMut(GridEntry)) {
         let min_pos = pos - Vec2::splat(radius);
         let max_pos = pos + Vec2::splat(radius);
 
@@ -109,18 +116,18 @@ impl SpatialGrid {
         for cy in min_cy..=max_cy {
             for cx in min_cx..=max_cx {
                 let idx = self.cell_to_index(cx, cy);
-                for &entity in &self.cells[idx] {
-                    callback(entity);
+                for &entry in &self.cells[idx] {
+                    callback(entry);
                 }
             }
         }
     }
 }
 
-/// Bevy system to clear and rebuild the Spatial Hash Grid.
+/// Bevy system to clear and rebuild the Spatial Hash Grid with bacteria.
 pub fn rebuild_spatial_grid(
     mut grid: ResMut<SpatialGrid>,
-    query: Query<(Entity, &Position)>,
+    query: Query<(Entity, &Position), With<crate::components::Dna>>,
 ) {
     grid.clear();
     for (entity, pos) in query.iter() {

@@ -1,21 +1,27 @@
 use bevy::prelude::*;
-use crate::components::{Position, Velocity, Dna, Metabolism, Species};
+use crate::components::{Position, Velocity, Dna, Metabolism, Species, ClickRipple};
 use crate::spatial_grid::SpatialGrid;
-use crate::resources::Environment;
+use crate::resources::{Environment, HeatProbe};
 use crate::math::hill_activation;
 
-/// System that draws background grids, borders, velocity trails, and Quorum Sensing pulsing glowing auras.
+/// System that draws background borders, velocity trails, Quorum Sensing glowing auras, localized Heat Probe, and Click Ripples.
 pub fn draw_render_effects(
+    mut commands: Commands,
+    time: Res<Time>,
     mut gizmos: Gizmos<'_, '_>,
     env: Res<Environment>,
     grid: Res<SpatialGrid>,
+    heat_probe: Res<HeatProbe>,
     bacteria_query: Query<(&Position, &Velocity, &Dna, &Metabolism)>,
+    mut ripple_query: Query<(Entity, &mut ClickRipple)>,
 ) {
+    let dt = time.delta_secs() * env.time_scale;
+
     // 1. Draw Simulation Border (600x600 square)
     // Toxin alert: flash red if toxins are active
     let border_color = if env.base_toxin_level > 0.0 {
         // Pulse border between red and orange
-        let pulse = (env.temperature * 5.0).sin() * 0.5 + 0.5;
+        let pulse = (time.elapsed_secs() * 5.0).sin() * 0.5 + 0.5;
         Color::srgba(1.0, 0.2 * pulse, 0.0, 0.7)
     } else {
         Color::srgba(0.0, 0.8, 1.0, 0.4) // Cyan neon
@@ -39,7 +45,37 @@ pub fn draw_render_effects(
         gizmos.line_2d(Vec2::new(-300.0, offset), Vec2::new(300.0, offset), grid_color);
     }
 
-    // 3. Draw individual bacterium trails and Quorum Sensing auras
+    // 3. Draw Localized Heat Probe boundary if active
+    if heat_probe.active {
+        let pulse = 1.0 + 0.05 * (time.elapsed_secs() * 6.0).sin();
+        let probe_color = Color::srgba(1.0, 0.15, 0.05, 0.3);
+        
+        // Heat Probe Core
+        gizmos.circle_2d(heat_probe.pos, 4.0, Color::srgb(1.0, 0.3, 0.0));
+        // Outer thermal boundary
+        gizmos.circle_2d(heat_probe.pos, heat_probe.radius * pulse, probe_color);
+        gizmos.circle_2d(heat_probe.pos, heat_probe.radius * 0.95 * pulse, probe_color.with_alpha(0.15));
+    }
+
+    // 4. Update and Draw Click Ripples
+    for (entity, mut ripple) in ripple_query.iter_mut() {
+        if dt > 0.0 {
+            ripple.radius += 180.0 * dt;
+        }
+
+        if ripple.radius >= ripple.max_radius {
+            commands.entity(entity).despawn();
+        } else {
+            let progress = ripple.radius / ripple.max_radius;
+            let alpha = (1.0 - progress).max(0.0) * 0.45;
+            let color = ripple.color.with_alpha(alpha);
+
+            gizmos.circle_2d(ripple.pos, ripple.radius, color);
+            gizmos.circle_2d(ripple.pos, ripple.radius * 0.9, color.with_alpha(alpha * 0.5));
+        }
+    }
+
+    // 5. Draw individual bacterium trails and Quorum Sensing auras
     for (pos, vel, dna, met) in bacteria_query.iter() {
         // A. Draw velocity vector trail (neon tail)
         let speed = vel.0.length();
